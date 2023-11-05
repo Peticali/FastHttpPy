@@ -1,14 +1,15 @@
 package main
 
-import (
-	"C"
-
-	"github.com/valyala/fasthttp"
-)
+/*
+#include <stdlib.h>
+*/
+import "C"
 import (
 	"unsafe"
 
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/valyala/fasthttp"
 )
 
 func main() {
@@ -58,9 +59,37 @@ func StartServer(host *C.char, port *C.char) {
 			data_py, _ = sjson.Set(data_py, "Headers", ctx.Request.Header.String())
 			data_py, _ = sjson.Set(data_py, "Body", ctx.Request.Body())
 
-			req_c := Request_c{Data: C.CString(data_py)}
+			data_c := C.CString(data_py)
+			req_c := Request_c{Data: data_c}
 			resp := funcc(req_c)
-			ctx.WriteString(C.GoString((*C.char)(resp)))
+			C.free(unsafe.Pointer(data_c))
+
+			resp_go := gjson.Parse(C.GoString((*C.char)(resp)))
+			ctx.WriteString(resp_go.Get("content").Str)
+			ctx.SetStatusCode(int(resp_go.Get("status_code").Int()))
+
+			for k, v := range resp_go.Get("headers").Map() {
+				ctx.Response.Header.Add(k, v.String())
+			}
+
+			for _, v := range resp_go.Get("cookies").Array() {
+				coo := fasthttp.Cookie{}
+
+				coo.SetKey(v.Get("key").String())
+				coo.SetValue(v.Get("value").String())
+
+				if v.Get("expire").Exists() {
+					coo.SetExpire(v.Get("expire").Time())
+				}
+				if v.Get("domain").Exists() {
+					coo.SetDomain(v.Get("domain").String())
+				}
+				if v.Get("maxAge").Exists() {
+					coo.SetMaxAge(int(v.Get("maxAge").Int()))
+				}
+
+				ctx.Response.Header.Cookie(&coo)
+			}
 
 		} else {
 			ctx.WriteString("not found")
