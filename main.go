@@ -24,10 +24,12 @@ type Generic_Dict struct {
 }
 
 type Request_c struct {
-	Data *C.char
+	Data         *C.char
+	Body_Address *C.uchar
+	Body_Len     C.int
 }
 
-type Callback func(Request_c) unsafe.Pointer
+type Callback func(*Request_c) unsafe.Pointer
 
 var methods_functions = map[string]map[string]Callback{}
 
@@ -57,11 +59,20 @@ func StartServer(host *C.char, port *C.char) {
 		if e {
 			data_py, _ := sjson.Set("{}", "URI", string(ctx.Path()))
 			data_py, _ = sjson.Set(data_py, "Headers", ctx.Request.Header.String())
-			data_py, _ = sjson.Set(data_py, "Body", ctx.Request.Body())
+			data_py, _ = sjson.Set(data_py, "Method", string(ctx.Method()))
 
 			data_c := C.CString(data_py)
-			req_c := Request_c{Data: data_c}
-			resp := funcc(req_c)
+			req_c := Request_c{Data: data_c, Body_Len: C.int(0)}
+
+			body := ctx.Request.Body()
+			body_len := len(body)
+
+			if body_len != 0 {
+				req_c.Body_Address = (*C.uchar)(unsafe.Pointer(&body[0]))
+				req_c.Body_Len = C.int(body_len)
+			}
+
+			resp := funcc(&req_c)
 			C.free(unsafe.Pointer(data_c))
 
 			resp_go := gjson.Parse(C.GoString((*C.char)(resp)))
