@@ -1,1 +1,1 @@
-go build -o dist/fasthttppy.lib -buildmode=c-shared
+cd fasthttppy/go_server && go build -o dist/fasthttppy.lib -buildmode=c-shared

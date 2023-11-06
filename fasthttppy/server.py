@@ -1,11 +1,23 @@
-import ctypes, json
+import ctypes, json, os
 from .definitions import Request, callback
+from pathlib import Path
 
 
 class FastHttp:
     
     def __init__(self):
-        self.lib = ctypes.CDLL("dist/fasthttppy.lib")
+        
+        script_path = Path(__file__).resolve()
+        lib_file = Path(str(script_path.parent)+"/go_server/dist/fasthttppy.lib")
+        if not lib_file.exists():
+            print("LIB not found compiling GO server")
+            res = os.popen("cd " + str(script_path.parent)+"/go_server" + " && go build -o dist/fasthttppy.lib -buildmode=c-shared").read()
+            
+            if lib_file.exists(): print("Success compiling")
+            else: print("Error compiling,\n"+res); exit()
+                
+        
+        self.lib = ctypes.CDLL(str(lib_file))
         
         self.lib.StartServer.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         self.lib.MountStatic.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
