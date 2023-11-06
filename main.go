@@ -5,6 +5,7 @@ package main
 */
 import "C"
 import (
+	"strings"
 	"unsafe"
 
 	"github.com/tidwall/gjson"
@@ -32,8 +33,20 @@ type Request_c struct {
 type Callback func(*Request_c) unsafe.Pointer
 
 var methods_functions = map[string]map[string]Callback{}
+var static_paths = map[string]fasthttp.RequestHandler{}
 
 //!EXPORTED FUNCTIONS
+
+//export MountStatic
+func MountStatic(path *C.char, directory *C.char) {
+	fs := &fasthttp.FS{
+		Root: C.GoString(directory),
+	}
+	fs.PathRewrite = fasthttp.NewPathSlashesStripper(1)
+
+	static_paths[C.GoString(path)] = fs.NewRequestHandler()
+
+}
 
 //export RegisterCallback
 func RegisterCallback(id *C.char, fn Callback, method *C.char) {
@@ -53,6 +66,13 @@ func RegisterCallback(id *C.char, fn Callback, method *C.char) {
 func StartServer(host *C.char, port *C.char) {
 
 	m := func(ctx *fasthttp.RequestCtx) {
+
+		for path, static := range static_paths {
+			if strings.HasPrefix(string(ctx.Path()), path) {
+				static(ctx)
+				return
+			}
+		}
 
 		funcc, e := methods_functions[string(ctx.Method())][string(ctx.Path())]
 

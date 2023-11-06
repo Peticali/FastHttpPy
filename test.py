@@ -3,7 +3,7 @@ import ctypes,random
 
 app = FastHttp()
 
-
+app.Static("/static","dist")
 
 def my_callback(req:Request):
     print(req.contents.GetURI())

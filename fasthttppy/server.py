@@ -8,9 +8,13 @@ class FastHttp:
         self.lib = ctypes.CDLL("dist/fasthttppy.lib")
         
         self.lib.StartServer.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        self.lib.MountStatic.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         self.lib.RegisterCallback.argtypes = [ctypes.c_char_p, ctypes.POINTER(callback),ctypes.c_char_p]
         
         self.func_list = []
+    
+    def Static(self,path:str, dir:str):
+        self.lib.MountStatic(path.encode(),dir.encode())
 
     def Get(self,path:str,functionnn):
         c_callback = callback(functionnn)
