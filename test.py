@@ -9,7 +9,6 @@ def my_callback(req:Request):
     print(req.contents.GetURI())
     print(req.contents.GetHeaders())
     print(req.contents.GetData())
-    
     return MakeResponse(200,"asd")
 
 

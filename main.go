@@ -34,6 +34,8 @@ type Callback func(*Request_c) unsafe.Pointer
 
 var methods_functions = map[string]map[string]Callback{}
 var static_paths = map[string]fasthttp.RequestHandler{}
+var error_page = "Internal Server Error"
+var not_found_page = "Not Found"
 
 //!EXPORTED FUNCTIONS
 
@@ -43,7 +45,6 @@ func MountStatic(path *C.char, directory *C.char) {
 		Root: C.GoString(directory),
 	}
 	fs.PathRewrite = fasthttp.NewPathSlashesStripper(1)
-
 	static_paths[C.GoString(path)] = fs.NewRequestHandler()
 
 }
@@ -60,6 +61,16 @@ func RegisterCallback(id *C.char, fn Callback, method *C.char) {
 
 	methods_functions[C.GoString(method)] = funcs
 
+}
+
+//export SetNotFoundPage
+func SetNotFoundPage(html *C.char) {
+	not_found_page = C.GoString(html)
+}
+
+//export SetErrorPage
+func SetErrorPage(html *C.char) {
+	error_page = C.GoString(html)
 }
 
 //export StartServer
@@ -96,6 +107,13 @@ func StartServer(host *C.char, port *C.char) {
 			C.free(unsafe.Pointer(data_c))
 
 			resp_go := gjson.Parse(C.GoString((*C.char)(resp)))
+
+			if !resp_go.Get("status_code").Exists() {
+				ctx.WriteString(error_page)
+				ctx.SetStatusCode(500)
+				return
+			}
+
 			ctx.WriteString(resp_go.Get("content").Str)
 			ctx.SetStatusCode(int(resp_go.Get("status_code").Int()))
 
@@ -123,7 +141,9 @@ func StartServer(host *C.char, port *C.char) {
 			}
 
 		} else {
-			ctx.WriteString("not found")
+			ctx.WriteString(not_found_page)
+			ctx.SetStatusCode(404)
+			return
 		}
 
 	}

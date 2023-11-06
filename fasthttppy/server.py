@@ -9,6 +9,8 @@ class FastHttp:
         
         self.lib.StartServer.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         self.lib.MountStatic.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        self.lib.SetNotFoundPage.argtypes = [ctypes.c_char_p]
+        self.lib.SetErrorPage.argtypes = [ctypes.c_char_p]
         self.lib.RegisterCallback.argtypes = [ctypes.c_char_p, ctypes.POINTER(callback),ctypes.c_char_p]
         
         self.func_list = []
@@ -28,9 +30,14 @@ class FastHttp:
         
         self.lib.RegisterCallback(path.encode(), c_callback,b"POST")
     
-
     def Run(self,host="",port=80):
         self.lib.StartServer(host.encode(),str(port).encode())
+    
+    def SetErrorPage(self,content):
+        self.lib.SetErrorPage(content.encode())
+        
+    def SetNotFoundPage(self,content):
+        self.lib.SetNotFoundPage(content.encode())
         
 
 class Cookie:
