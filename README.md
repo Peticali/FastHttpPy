@@ -8,6 +8,10 @@ Python implementation of Golang FastHttp
 
 Benchmark made on MacBook Pro M2 Pro
 
+```sh
+pip install fasthttppy
+```
+
 Example:
 ```python
 from fasthttppy import FastHttp, MakeResponse, Request
